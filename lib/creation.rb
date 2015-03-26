@@ -1,5 +1,4 @@
 require "creation/version"
-
-module Creation
-  # Your code goes here...
-end
+require "creation/generators/app_generator"
+require "creation/action_methods"
+require "creation/app_builder"
