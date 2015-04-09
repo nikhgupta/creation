@@ -26,7 +26,7 @@ describe "Creation with default configuration, but without home page" do
     end
     it "does not link to admin backend login in layout" do
       content = /\<\%=\s*link_to\s+'.*?',\s+admin_dashboard_path.*?\s*%\>/
-      expect(content).to be_present_in("app/views/layouts/application.html.erb")
+      expect(content).not_to be_present_in("app/views/layouts/application.html.erb")
     end
   end
   context "twitter bootstrap (for frontend)" do
@@ -57,8 +57,8 @@ describe "Creation with default configuration, but without home page" do
     end
     it "brands app with its name" do
       expect(@output).to match(/^\s*bootstrap.*brand/)
-      expect(/link_to\s+\"DummyApp\"/).to  be_present_in(@layout)
-      expect("<title>DummyApp</title>").to be_present_in(@layout)
+      expect(/link_to\s+\"Dummy App\"/).to  be_present_in(@layout)
+      expect("<title>Dummy App</title>").to be_present_in(@layout)
       expect("project name").not_to        be_present_in(@layout)
       expect("starter template for bootstrap").not_to be_present_in(@layout)
     end

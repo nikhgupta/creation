@@ -116,9 +116,8 @@ describe "Creation with default configuration" do
     end
     it "brands app with its name" do
       expect(@output).to match(/^\s*bootstrap.*brand/)
-      # expect(/link_to\s+\"DummyApp\"/).to  be_present_in(@layout)
-      expect("<title>DummyApp</title>").to be_present_in(@layout)
-      expect("project name").not_to        be_present_in(@layout)
+      expect("<title>Dummy App</title>").to be_present_in(@layout)
+      expect("project name").not_to         be_present_in(@layout)
       expect("starter template for bootstrap").not_to be_present_in(@layout)
     end
   end

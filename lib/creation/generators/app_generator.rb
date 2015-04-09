@@ -133,6 +133,7 @@ module Creation
       end
 
       def bundle_patch name, message, &block
+        return unless bundle_install?
         after_bundle do
           say_status name, "[patch]: #{message}", :magenta
           silent_yield { yield }

@@ -29,7 +29,9 @@ module CreationTestHelpers
       Bundler.with_clean_env do
         command = "new #{APP_NAME} #{arguments}".strip
         puts "\e[35m  => running: creation #{command}\e[0m (can be a bit slow)"
-        %x(#{creation_binary} #{command})
+        output = %x(#{creation_binary} #{command})
+        raise "Command Failed: #{command}" unless $? == 0
+        output
       end
     end
   end
