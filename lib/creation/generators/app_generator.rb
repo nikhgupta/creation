@@ -63,8 +63,7 @@ module Creation
         commit_updates :setup,  :pundit, "pundit for user authorization"
         commit_updates :setup,  :active_admin, "active_admin for admin backend framework"
         commit_updates :setup,  :sidekiq, "sidekiq for background processing"
-
-        super   # run leftovers
+        commit_updates :run,    :leftovers, "leftovers for the setup"
 
         after_bundle { commit_updates "customized rails, using `creation` gem" }
       end

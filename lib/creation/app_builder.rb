@@ -141,5 +141,13 @@ module Creation
         route "mount Sidekiq::Web => '/monitor'"
       end
     end
+
+    def run_leftovers
+      add_postgres_database_rake if options["database"] == "postgresql"
+    end
+
+    def add_postgres_database_rake
+      copy_file "database.rake", "lib/database.rake"
+    end
   end
 end

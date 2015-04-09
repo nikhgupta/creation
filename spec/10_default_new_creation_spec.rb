@@ -8,6 +8,15 @@ describe "Creation with default configuration" do
   xit "specs pass" do
     # inside_project_bundle{ expect(`rake`).to include('0 failures') }
   end
+  context "with database" do
+    it "sets up postgres as default database" do
+      expect("adapter: postgresql").to be_present_in("config/database.example.yml")
+    end
+    it "adds database.rake for aiding in dropping databases easily" do
+      expect(File).to find("lib/database.rake")
+      expect("PostgreSQLAdapter").to be_present_in("lib/database.rake")
+    end
+  end
   context "with README" do
     before{ @readme = project_path("README.md") }
     it "provides concise information on CLI" do
