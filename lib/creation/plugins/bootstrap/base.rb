@@ -4,22 +4,19 @@ module Creation::Plugins::Bootstrap
     add_skip_option :home_page, "Do not add a home page"
     add_skip_option :flat_ui,   "Do not install Flat UI theme"
 
-    greet_message "Adding Frontend Framework using Twitter Bootstrap"
-    commit_message "Added Twitter Bootstrap"
-
-    def run
+    def init_plug
       gem "bootstrap-generators"
       bundle_exec "rails generate bootstrap:install --force"
-      post_bundle_task :fix_application_layout, "Add links to and fix up application layout"
+      post_bundle_task :fix_application_layout, "Add links and fix up application layout"
     end
 
-    def install_flat_ui
+    def add_flat_ui_optional
       gem "flat-ui-sass", github: 'wingrunr21/flat-ui-sass'
       append_file "app/assets/javascripts/application.js", '//= require flat-ui'
-      post_bundle_task :hook_flat_ui_into_assets
+      post_bundle_task :add_flat_ui_to_assets, "Add Flat UI files to /app/assets"
     end
 
-    def install_home_page
+    def add_home_page_optional
         gem "high_voltage"
         copy_file "home.html.erb", "app/views/pages/home.html.erb"
         route "root to: 'high_voltage/pages#show', id: 'home'"
@@ -33,7 +30,9 @@ module Creation::Plugins::Bootstrap
 
       # add links to navigation
       nav_html  = "<ul class='nav navbar-nav'><li class='active'><%= link_to 'Home', root_path %></li></ul>"
-      # nav_html += "\n<ul class='nav navbar-nav navbar-right'><li><%= link_to 'Login to #{options["admin_namespace"].titleize} Area', #{options["admin_namespace"]}_dashboard_path %></li></ul>" if enabled?(:bundle, :active_admin)
+      if enabled?(:active_admin)
+        nav_html += "\n<ul class='nav navbar-nav navbar-right'><li><%= link_to 'Login to #{options["admin_namespace"].titleize} Area', #{options["admin_namespace"]}_dashboard_path %></li></ul>"
+      end
       gsub_file(layout_file, /<ul class="nav navbar-nav">.*?<\/ul>/mi, nav_html)
       gsub_file(layout_file, '"#", class: "navbar-brand"', 'root_path, class: "navbar-brand"')
 
@@ -45,7 +44,7 @@ module Creation::Plugins::Bootstrap
       append_file("app/assets/stylesheets/bootstrap-generators.scss", navbar_link_css)
     end
 
-    def hook_flat_ui_into_assets
+    def add_flat_ui_to_assets
       file = "app/assets/stylesheets/bootstrap-generators.scss"
       gsub_file(file, "bootstrap-variables.scss", "flat-ui/variables")
       insert_into_file(file, "\n@import \"flat-ui\";", after: '@import "bootstrap.scss";')
@@ -57,3 +56,18 @@ module Creation::Plugins::Bootstrap
     end
   end
 end
+
+__END__
+
+name:     Bootstrap
+purpose:  frontend framework
+category: integration
+default:  false
+
+options:
+  home_page:
+    default: false
+    skip:    Do not add a home page
+  flat_ui:
+    default: false
+    ukip:    Do not add FlatUI theme

@@ -1,3 +1,4 @@
+require 'yaml'
 require 'rails/generators'
 require 'rails/generators/rails/app/app_generator'
 require 'active_support/inflector'
@@ -22,13 +23,17 @@ module Creation
   end
 
   def self.load_plugins
-    @@plugins = ["*.rb", "*/base.rb"].map do |pattern|
-      Dir.glob(File.join(plugins_root, pattern)).each{|f| require f}
-    end.flatten.uniq.map do |file|
+    plugins = ["*.rb", "*/base.rb"].map do |pattern|
+      Dir.glob(File.join(plugins_root, pattern))
+    end.flatten
+    plugins.unshift File.join(plugins_root, "base.rb")
+
+    @@plugins = plugins.uniq.map do |file|
+      require file
       name = file.gsub(File.join(ROOT_PATH, "lib"), '')
       name = name.gsub(/\.rb$/, '') #.gsub(/\/base$/, '')
-      name = name.camelize.constantize if name.present?
-      name if name.is_a?(Class) && name != Creation::Plugins::Base
+      name = (name.camelize.constantize rescue nil) if name.present?
+      name if name.is_a?(Class) # && name != Creation::Plugins::Base
     end.compact
   end
 end
