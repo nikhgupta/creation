@@ -5,9 +5,14 @@ module Creation::Plugins::Bootstrap
     add_skip_option :flat_ui,   "Do not install Flat UI theme"
 
     def init_plug
-      gem "bootstrap-generators"
-      bundle_exec "rails generate bootstrap:install --force"
-      post_bundle_task :fix_application_layout, "Add links and fix up application layout"
+      if enabled?(:active_admin) && options[:admin_namespace].blank?
+        notify "ActiveAdmin is using Root namespace.", type: :warn
+        disable_myself!
+      else
+        gem "bootstrap-generators"
+        bundle_exec "rails generate bootstrap:install --force"
+        post_bundle_task :fix_application_layout, "Add links and fix up application layout"
+      end
     end
 
     def add_flat_ui_optional

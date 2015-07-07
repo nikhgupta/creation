@@ -34,11 +34,8 @@ class Creation::Plugins::ActiveAdmin < Creation::Plugins::Base
   end
 
   # FIXME: admin@example.com is not set as User.
-  # NOTE:  This is due to the fact that db/seeds is run along with db:migrate,
-  # which results in a race condition, probably. Sleeping for a moment will
-  # solve this.
+  # NOTE:  This is due to the fact that db/seeds is run along with db:migrate.
   def create_test_users
-    sleep 3
     # add `admin` field to activeadmin, and create some test users
     append_file "db/seeds.rb", "\n#{user_class}.find_by(email: 'admin@example.com').update_attribute :admin, true"
     append_file "db/seeds.rb", "\n#{user_class}.create!(email: 'test@example.com', password: 'password', password_confirmation: 'password')"
@@ -46,16 +43,18 @@ class Creation::Plugins::ActiveAdmin < Creation::Plugins::Base
 
   def modify_config
     # customize AA to behave as per user intended for.
-    custom_aa_config = <<-CONFIG.gsub(/^ {2}/, '').strip
+    custom_aa_config = <<-CONFIG.gsub(/^ {4}/, '').strip
       # Custom configuration for ActiveAdmin (added via template)
       config.site_title_link       = "/"
       config.default_namespace     = #{ns_string}
       config.show_comments_in_menu = false
-    #{enabled?(:pundit) ? "config.authorization_adapter = ActiveAdmin::PunditAdapter\n" : ""}
+      #{enabled?(:pundit) ? "config.authorization_adapter = ActiveAdmin::PunditAdapter\n" : ""}
       config.namespace(#{ns_string}) do |namespace|
         namespace.download_links = false
         namespace.build_menu :default do |menu|
-    #{enabled?(:sidekiq) ? "menu.add label: 'Monitor', url: ->{ sidekiq_web_path }, priority: 999, html_options: { target: :blank }, if: proc{ current_user.admin? }" : ""}
+        #{enabled?(:sidekiq) ? "menu.add label: 'Monitor', url: ->{ sidekiq_web_path },
+          priority: 999, html_options: { target: :blank },
+          if: proc{ current_user.admin? }" : ""}
         end
       end
     CONFIG

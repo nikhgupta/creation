@@ -4,6 +4,8 @@ module Creation
       class Error < Thor::Error # :nodoc:
       end
 
+      attr_reader :disabled_plugins
+
       add_shared_options_for "application"
 
       class_option :database, type: :string, aliases: '-d', default: 'postgresql',
@@ -34,6 +36,12 @@ module Creation
       end
 
       protected
+
+      def disable_plugin!(plugin)
+        @disabled_plugins ||= []
+        @disabled_plugins.push(plugin.to_s)
+        shell.notify "Disabled Plugin: #{plugin}", type: :warn
+      end
 
       # Run all the plugins that are enabled, but make sure no gory details are
       # shown to the user.

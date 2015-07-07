@@ -58,8 +58,21 @@ class Creation::Plugins::Base
     end
   end
 
+  def disable_myself!
+    @generator.send :disable_plugin!, self
+  end
+
+  def disabled_explicitly?(plugin)
+    disabled = @generator.disabled_plugins
+    disabled && disabled.respond_to?(:any?) && disabled.include?(plugin.to_s)
+  end
+
   def enabled?(plugin, option = nil)
-    option = option.blank? ? "skip_#{plugin}" : "#{plugin}_skip_#{option}"
+    return false if disabled_explicitly?(plugin)
+    enabled = options.has_key?("skip_#{plugin}") && !options["skip_#{plugin}"]
+    return false unless enabled
+    return true if option.blank?
+    option = "#{plugin}_skip_#{option}"
     options.has_key?(option) && options[option] == false
   end
 
@@ -82,6 +95,7 @@ class Creation::Plugins::Base
     install_useful_gems
     add_example_configs
     post_bundle_task :update_readme, "Update README"
+    post_bundle_task :add_postgres_database_rake
   end
 
   def update_readme
@@ -109,5 +123,10 @@ class Creation::Plugins::Base
       git rm: "--cache secrets.yml database.yml > /dev/null"
     end
     append_file ".gitignore", "\nconfig/secrets.yml\nconfig/database.yml"
+  end
+
+  def add_postgres_database_rake
+    return unless options["database"] == "postgres"
+    copy_file "database.rake", "lib/tasks/database.rake"
   end
 end
