@@ -38,6 +38,15 @@ describe "Creation with default configuration" do
       expect(@output).not_to match(/^\s*gemfile\s+pry-rails/)
       expect("gem 'pry-rails', group: [:test, :development]").to be_in_gemfile
     end
+    it "adds dotenv gem for easily picking up per-environment variables" do
+      expect(@output).not_to match(/^\s*gemfile\s+dotenv-rails/)
+      expect("gem 'dotenv-rails', group: [:test, :development]").to be_in_gemfile
+    end
+    it "uses better errors" do
+      expect(@output).not_to match(/^\s*gemfile\s+better-errors/)
+      expect("gem 'better_errors', group: :development").to be_in_gemfile
+      expect("gem 'binding_of_caller', group: :development").to be_in_gemfile
+    end
   end
   context "with configuration files" do
     it "provides concise information on CLI" do
@@ -130,25 +139,92 @@ describe "Creation with default configuration" do
       expect("starter template for bootstrap").not_to be_present_in(@layout)
     end
   end
-  context "rspec (for test-driven development)" do
+  context "Flat UI for theming" do
+    it "provides concise information on CLI" do
+      expect(@output).to  match(/^\s*flat_ui\s+.*\[patch\]/)
+    end
+    it "adds relevant gem(s) to Gemfile" do
+      expect("gem 'flat-ui-sass'").to be_in_gemfile
+    end
+    it "hooks itself into assets pipeline" do
+      file = "app/assets/javascripts/application.js"
+      expect('//= require flat-ui').to be_present_in(file)
+
+      file = "app/assets/stylesheets/bootstrap-generators.scss"
+      expect("bootstrap-variables").not_to be_present_in(file)
+      expect('@import "flat-ui/variables";').to be_present_in(file)
+    end
+  end
+  context "for test-driven development" do
     it "provides concise information on CLI" do
       expect(@output).to      match(/^\s*setup\s+rspec/)
       expect(@output).not_to  match(/^\s*gemfile\s+rspec-rails/)
+      expect(@output).not_to  match(/^\s*gemfile\s+cucumber-rails/)
+      expect(@output).not_to  match(/^\s*gemfile\s+guard-rspec/)
     end
+    # FIXME: ew... replace with better rspec matchers
     it "adds relevant gem(s) to Gemfile" do
-      expect("gem 'rspec-rails', group: [:test, :development]").to be_in_gemfile
+      gemfile = project_path("Gemfile").read
+      test_block = gemfile.scan(/group\s+:test\s+do(.*?)end/m).join.gsub(/^\s+/, '')
+      content = <<-DATA.gsub(/^ {8}/, '').strip
+        gem 'launchy'
+        gem 'capybara'
+        gem 'email_spec'
+        gem 'shoulda-matchers'
+        gem 'database_cleaner'
+        gem 'simplecov', require: false
+        gem 'cucumber-rails', require: false
+      DATA
+      expect(test_block).to include(content)
+
+      dev_block = gemfile.scan(/group\s+:development\s+do(.*?)end/m).join.gsub(/^\s+/, '')
+      content = <<-DATA.gsub(/^ {8}/, '').strip
+        gem 'guard-rspec'
+        gem 'guard-cucumber'
+        gem 'terminal-notifier'
+        gem 'terminal-notifier-guard'
+      DATA
+      expect(dev_block).to include(content)
+
+      both_blocks  = gemfile.scan(/group\s+:test,\s+:development\s+do(.*?)end/m).join.gsub(/^\s+/, '')
+      both_blocks += gemfile.scan(/group\s+:development,\s+:test\s+do(.*?)end/m).join.gsub(/^\s+/, '')
+      content = <<-DATA.gsub(/^ {8}/, '').strip
+        gem 'rspec-rails'
+        gem 'factory_girl_rails'
+      DATA
+      expect(both_blocks).to include(content)
     end
-    it "creates requisite directories" do
+    it "creates requisite rspec directories" do
       expect(File).to find("spec/models/.keep")
       expect(File).to find("spec/support/.keep")
       expect(File).to find("spec/routing/.keep")
+      expect(File).to find("spec/factories/.keep")
     end
     it "runs the related generator" do
       expect(@output).to   match(/^\s*bundle.*generate rspec:install/)
+      expect(@output).not_to match(/Writing new Guardfile/)
 
+      # guard
+      expect(File).to find("Guardfile")
+      expect('guard "cucumber"').to be_present_in("Guardfile")
+      expect('guard :rspec').to be_present_in("Guardfile")
+
+      # rspec
       expect(File).to      find("spec/spec_helper.rb")
       expect(File).to      find("spec/rails_helper.rb")
       expect("--color").to be_present_in(".rspec")
+
+      # cucumber
+      expect(File).to find("lib/tasks/cucumber.rake")
+      expect(File).to find("features/support/env.rb")
+    end
+    it "patches Guardfile to open HTML page snapshot when Integration test fails in Cucumber" do
+      expect("guard \"cucumber\", command_prefix: 'DEBUG=open'").to be_present_in("Guardfile")
+    end
+    # FIXME: at the start of the file?
+    it "patches RSpec, and Cucumber to add SimpleCov configuration" do
+      expect("SimpleCov.start").to be_present_in("spec/rails_helper.rb")
+      expect("SimpleCov.start").to be_present_in("features/support/env.rb")
     end
   end
   context "pundit (for authorization)" do

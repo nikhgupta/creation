@@ -25,18 +25,91 @@ module Creation
     end
 
     def setup_useful_gems
+      gem 'better_errors', group: :development
+      gem 'binding_of_caller', group: :development
       gem "pry-rails", group: [:test, :development]
+      gem 'dotenv-rails', group: [:test, :development]
     end
 
-    def setup_rspec
-      gem "rspec-rails", group: [:test, :development]
+    def setup_test_suite
+      gem_group :development do
+        gem 'guard-rspec'
+        gem 'guard-cucumber'
+        gem 'terminal-notifier'
+        gem 'terminal-notifier-guard'
+      end
 
+      gem_group :test do
+        gem 'launchy'
+        gem 'capybara'
+        gem 'email_spec'
+        gem 'shoulda-matchers'
+        gem 'database_cleaner'
+        gem 'simplecov', require: false
+        gem 'cucumber-rails', require: false
+      end
+
+      gem_group :test, :development do
+        gem 'rspec-rails'
+        gem 'factory_girl_rails'
+      end
+
+      after_bundle do
+        bundle_command "exec rails generate rspec:install"
+        bundle_command "exec rails generate cucumber:install"
+        bundle_command "exec rails generate email_spec:steps"
+        bundle_command "exec guard init &>/dev/null"
+      end
+
+      # guard
+      bundle_patch :guard, "open HTML page when Integration test fails in Cucumber" do
+        inject_into_file("Guardfile", ", command_prefix: 'DEBUG=open'", after: 'guard "cucumber"')
+      end
+
+      # rspec
       create_file "spec/models/.keep"
       create_file "spec/support/.keep"
       create_file "spec/routing/.keep"
+      create_file "spec/factories/.keep"
+      bundle_patch :rspec, "load support files in spec/support directory" do
+        gsub_file('spec/rails_helper.rb', /^\# Dir\[Rails\.root\.join/, 'Dir[Rails.root.join')
+      end
 
-      after_bundle{ bundle_command "exec rails generate rspec:install" }
-      # with_bundle "rails generate rspec:install"
+      # simplecov
+      simplecov = <<-DATA.gsub(/^ {8}/, '')
+        # simplecov configuration
+        require 'simplecov'
+        SimpleCov.start 'rails' do
+          add_group 'Policies', 'app/policies'
+          add_group 'Extractors', 'app/extractors'
+          add_group 'SidekiqJobs', 'app/jobs'
+        end
+        SimpleCov.command_name 'RSpec'
+
+      DATA
+
+      bundle_patch :simplecov, "add configuration to run Simplecov" do
+        inject_into_file("spec/rails_helper.rb", simplecov, after: "ENV['RAILS_ENV'] ||= 'test'\n")
+        prepend_to_file("features/support/env.rb", simplecov.gsub("RSpec", "Cucumber"))
+      end
+
+      # Cucumber and RSpec helper files
+      bundle_patch :rspec, "add support files for various gems" do
+        directory "rspec/support", "spec/support"
+      end
+      bundle_patch :cucumber, "add support files for various gems, and some step definitions" do
+        directory "cucumber/support", "features/support"
+        directory "cucumber/step_definitions", "features/step_definitions"
+        inject_into_file("features/support/env.rb", "\nrequire 'email_spec'\nrequire 'email_spec/cucumber'", after: "require 'cucumber/rails'")
+      end
+
+      if enabled?(:active_admin)
+        bundle_path :factory_girl, "adding User factory" do
+          copy_file "factories/users.rb", "spec/factories/users.rb"
+        end
+      end
+
+      append_file(".gitignore", "coverage/*")
     end
 
     def setup_bootstrap
@@ -50,6 +123,9 @@ module Creation
         layout_file = "app/views/layouts/application.html.erb"
         gsub_file layout_file, /project\s+name/i, app_name.titleize
         gsub_file layout_file, "Starter Template for Bootstrap", app_name.titleize
+
+        navbar_link_css = ".navbar {\n  a {\n     text-decoration: none;\n  }\n}"
+        append_file("app/assets/stylesheets/bootstrap-generators.scss", navbar_link_css)
       end
     end
 
@@ -59,15 +135,35 @@ module Creation
       copy_file "home.html", "app/views/pages/home.html.erb"
       route "root to: 'high_voltage/pages#show', id: 'home'"
 
-      layout_file = "app/views/layouts/application.html.erb"
-      nav_html  = "<ul class='nav navbar-nav'><li class='active'><%= link_to 'Home', root_path %></li></ul>"
-      nav_html += "\n<ul class='nav navbar-nav navbar-right'><li><%= link_to 'Login to #{options["admin_namespace"].titleize} Area', #{options["admin_namespace"]}_dashboard_path %></li></ul>" if enabled?(:bundle, :active_admin)
-      insert_into_file layout_file, nav_html, before: /\n\s*<%=\s*yield\s*%>/
-
       # Update the application layout, so generated, to present a nice homepage
       # OPTIMIZE: maybe, add this as a separate template?
+      # FIXME: what happens when not using bootstrap?
       bundle_patch :home_page, "add important links to home page" do
-        gsub_file(layout_file, /<ul class="nav navbar-nav">.*?<\/ul>/mi, nav_html) if enabled?(:bootstrap)
+        layout_file = "app/views/layouts/application.html.erb"
+        nav_html  = "<ul class='nav navbar-nav'><li class='active'><%= link_to 'Home', root_path %></li></ul>"
+        nav_html += "\n<ul class='nav navbar-nav navbar-right'><li><%= link_to 'Login to #{options["admin_namespace"].titleize} Area', #{options["admin_namespace"]}_dashboard_path %></li></ul>" if enabled?(:bundle, :active_admin)
+        insert_into_file layout_file, nav_html, before: /\n\s*<%=\s*yield\s*%>/
+        if enabled?(:bootstrap)
+          gsub_file(layout_file, /<ul class="nav navbar-nav">.*?<\/ul>/mi, nav_html)
+          gsub_file(layout_file, '"#", class: "navbar-brand"', 'root_path, class: "navbar-brand"')
+        end
+      end
+    end
+
+    def setup_flat_ui
+      return unless enabled?(:bootstrap)
+      gem "flat-ui-sass", github: 'wingrunr21/flat-ui-sass'
+      append_file "app/assets/javascripts/application.js", '//= require flat-ui'
+
+      bundle_patch :flat_ui, "add Flat UI theming for bootstrap" do
+        file = "app/assets/stylesheets/bootstrap-generators.scss"
+        gsub_file(file, "bootstrap-variables.scss", "flat-ui/variables")
+        insert_into_file(file, "\n@import \"flat-ui\";", after: '@import "bootstrap.scss";')
+
+        stylesheet_tag = "\n  <%= stylesheet_link_tag 'application', 'http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext', media: 'screen' %>"
+        insert_into_file("app/views/layouts/application.html.erb", stylesheet_tag, before: "\n  <%= csrf_meta_tags %>")
+
+        append_file("config/initializers/assets.rb", "Rails.application.config.assets.precompile += %w( flat-ui/**/*.png )")
       end
     end
 
@@ -144,10 +240,11 @@ module Creation
 
     def run_leftovers
       add_postgres_database_rake if options["database"] == "postgresql"
+      # TODO: remove test directory if test suite installed
     end
 
     def add_postgres_database_rake
-      copy_file "database.rake", "lib/database.rake"
+      copy_file "database.rake", "lib/tasks/database.rake"
     end
   end
 end

@@ -16,35 +16,38 @@ module Creation
 
       add_shared_options_for "application"
 
-      class_option :no_creation,        type: :boolean,
-                                        desc: "Skip Rails customization, altogether."
+      class_option :database,           type: :string, aliases: '-d', default: 'postgresql',
+                                        desc: "Preconfigure for selected database"
 
-      class_option :skip_active_admin,  type: :boolean, aliases: "-a",
-                                        desc: "Skip ActiveAdmin (admin backend framework) integration"
+      class_option :skip_test_suite,    type: :boolean,
+                                        desc: "Skip Test Suite setup"
 
       class_option :skip_bootstrap,     type: :boolean, aliases: "-b",
                                         desc: "Skip Twitter Bootstrap (frontend framework) integration"
 
-      class_option :skip_pundit,        type: :boolean,
-                                        desc: "Skip Pundit (authorization) setup"
-
-      class_option :skip_rspec,         type: :boolean,
-                                        desc: "Skip RSpec (test suite) setup"
-
-      class_option :skip_sidekiq,       type: :boolean,
-                                        desc: "Skip Sidekiq (background processing) integration"
+      class_option :skip_flat_ui,       type: :boolean,
+                                        desc: "Skip Flat UI themeing (when using bootstrap)"
 
       class_option :skip_home_page,     type: :boolean,
                                         desc: "Skip adding default HomePage (via HighVoltage)"
 
-      class_option :database,           type: :string, aliases: '-d', default: 'postgresql',
-                                        desc: "Preconfigure for selected database"
+      class_option :skip_sidekiq,       type: :boolean,
+                                        desc: "Skip Sidekiq (background processing) integration"
+
+      class_option :skip_pundit,        type: :boolean,
+                                        desc: "Skip Pundit (authorization) setup"
+
+      class_option :skip_active_admin,  type: :boolean, aliases: "-a",
+                                        desc: "Skip ActiveAdmin (admin backend framework) integration"
 
       class_option :admin_namespace,    type: :string, default: 'admin',
                                         desc: "Admin namespace for ActiveAdmin. Use '' string for root namespace."
 
       class_option :admin_user,         type: :string, default: 'user',
                                         desc: "User model name for ActiveAdmin."
+
+      class_option :no_creation,        type: :boolean,
+                                        desc: "Skip Rails customization, altogether."
 
       def finish_template
         return super() if options["no_creation"].present?
@@ -59,7 +62,8 @@ module Creation
         commit_updates :setup,  :useful_gems, "useful gems for smooth development workflows"
         commit_updates :setup,  :bootstrap, "add frontend framework using twitter bootstrap", if: options["admin_namespace"].present?
         commit_updates :create, :home_page, "add a default usable home page", if: options["admin_namespace"].present?
-        commit_updates :setup,  :rspec, "rspec for test-driven development"
+        commit_updates :setup,  :flat_ui, "add Flat UI for themeing", unless: options["skip_bootstrap"].present?
+        commit_updates :setup,  :test_suite, "rspec and cucumber for test-driven development"
         commit_updates :setup,  :pundit, "pundit for user authorization"
         commit_updates :setup,  :active_admin, "active_admin for admin backend framework"
         commit_updates :setup,  :sidekiq, "sidekiq for background processing"
@@ -115,7 +119,7 @@ module Creation
 
           git init: "-q"
           git add: "."
-          git commit: "-qam '#{message}' >/dev/null"
+          hit commit: "-qam '#{message}' >/dev/null"
         end
 
         say_status title, message, :magenta

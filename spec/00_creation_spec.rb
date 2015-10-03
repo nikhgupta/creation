@@ -21,7 +21,7 @@ describe Creation do
       expect(help).to include("--admin-namespace=ADMIN_NAMESPACE")
 
       # TODO: populate this automatically?
-      %w[active-admin bootstrap pundit rspec sidekiq home-page].each do |feat|
+      %w[active-admin bootstrap pundit test-suite flat-ui sidekiq home-page].each do |feat|
         expect(help).to match(/\[--skip-#{feat}\], \[--no-skip-#{feat}\]\s+\# Skip/)
       end
     end

@@ -27,6 +27,15 @@ describe "Creation when skipping bundle" do
       expect(@output).not_to match(/^\s*gemfile\s+pry-rails/)
       expect("gem 'pry-rails', group: [:test, :development]").to be_in_gemfile
     end
+    it "adds dotenv gem for easily picking up per-environment variables" do
+      expect(@output).not_to match(/^\s*gemfile\s+dotenv-rails/)
+      expect("gem 'dotenv-rails', group: [:test, :development]").to be_in_gemfile
+    end
+    it "uses better errors" do
+      expect(@output).not_to match(/^\s*gemfile\s+better-errors/)
+      expect("gem 'better-errors', group: [:development]").to be_in_gemfile
+      expect("gem 'binding_of_caller', group: [:development]").to be_in_gemfile
+    end
   end
   context "with configuration files" do
     it "provides concise information on CLI" do
@@ -121,12 +130,14 @@ describe "Creation when skipping bundle" do
     end
     xit "notifies the user of steps to follow"
   end
-  context "rspec (for test-driven development)" do
+  context "for test-driven development" do
     it "provides concise information on CLI" do
-      expect(@output).to      match(/^\s*setup\s+rspec/)
+      expect(@output).to      match(/^\s*setup\s+test-suite/)
       expect(@output).not_to  match(/^\s*gemfile\s+rspec-rails/)
+      expect(@output).not_to  match(/^\s*gemfile\s+cucumber-rails/)
     end
     it "adds relevant gem(s) to Gemfile" do
+      expect("gem 'rspec-rails', group: [:test, :development]").to be_in_gemfile
       expect("gem 'rspec-rails', group: [:test, :development]").to be_in_gemfile
     end
     it "creates requisite directories" do

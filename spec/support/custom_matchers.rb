@@ -5,11 +5,11 @@ RSpec::Matchers.define :be_present_in do |file|
   end
 
   failure_message do |excerpt|
-    "expected #{file} to include:\n  #{excerpt}"
+    "expected #{file} to include:\n  #{excerpt}\n\nFound:\n#{project_path(file.to_s).read}"
   end
 
   failure_message_when_negated do |excerpt|
-    "expected #{file} to not include:\n  #{excerpt}"
+    "expected #{file} to not include:\n  #{excerpt}\n\nFound:\n#{project_path(file.to_s).read}"
   end
 
   description do
@@ -46,11 +46,11 @@ RSpec::Matchers.define :be_in_gemfile do
   end
 
   failure_message do |gemspec|
-    "expected project's Gemfile to have:\n#{gemspec}"
+    "expected project's Gemfile to have:\n#{gemspec}\n\nFound:\n#{project_path("Gemfile").read}"
   end
 
   failure_message_when_negated do |gemspec|
-    "expected project's Gemfile to not have:\n#{gemspec}"
+    "expected project's Gemfile to not have:\n#{gemspec}\n\nFound:\n#{project_path("Gemfile").read}"
   end
 
   description do
