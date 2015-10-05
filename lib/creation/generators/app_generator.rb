@@ -119,7 +119,7 @@ module Creation
 
           git init: "-q"
           git add: "."
-          hit commit: "-qam '#{message}' >/dev/null"
+          git commit: "-qam '#{message}' >/dev/null"
         end
 
         say_status title, message, :magenta
