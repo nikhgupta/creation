@@ -217,7 +217,7 @@ module Creation
       bundle_patch :active_admin, "modify generated configuration" do
         insert_into_file "app/admin/#{user_klass.underscore}.rb", "    column :admin\n", after: "column :email\n"
         insert_into_file "config/initializers/active_admin.rb", "\n\n  #{custom_aa_config}\n", after: /ActiveAdmin\.setup do.*$/
-        append_file "app/assets/stylesheets/active_admin.css.scss", "#footer {\n  p { display: none; }\n}"
+        append_file "app/assets/stylesheets/active_admin.scss", "#footer {\n  p { display: none; }\n}"
       end
     end
 
