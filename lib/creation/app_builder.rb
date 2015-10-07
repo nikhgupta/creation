@@ -104,7 +104,7 @@ module Creation
       end
 
       if enabled?(:active_admin)
-        bundle_path :factory_girl, "adding User factory" do
+        bundle_patch :factory_girl, "adding User factory" do
           copy_file "factories/users.rb", "spec/factories/users.rb"
         end
       end
